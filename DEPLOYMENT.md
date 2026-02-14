@@ -7,21 +7,21 @@ Setiap push ke branch `main` akan otomatis trigger deployment.
 
 ## Prasyarat
 
-- Akses SSH ke shared hosting DomaiNesia
-- cPanel dengan fitur **Setup Node.js App**
+- Akses SSH ke shared hosting DomaiNesia (port **64000**)
+- cPanel dengan fitur **Setup Node.js App** (CloudLinux)
 - Repository di GitHub
 
 ---
 
 ## Langkah 1 — Generate SSH Key di Server
 
-SSH ke server DomaiNesia (port 64000), lalu jalankan:
+SSH ke server DomaiNesia:
 
 ```bash
 ssh -p 64000 [username]@[SSH_HOST]
 ```
 
-Setelah masuk, jalankan:
+Setelah masuk, generate SSH key:
 
 ```bash
 ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/domainesia_deploy -N ""
@@ -70,22 +70,27 @@ Salin seluruh output (termasuk baris `-----BEGIN OPENSSH PRIVATE KEY-----` dan `
 
 ### Tambahkan Environment Variables
 
-Setelah app dibuat, klik **"Edit"** lalu tambahkan environment variables berikut di bagian **"Environment variables"**:
+Setelah app dibuat, klik **"Edit"** lalu tambahkan environment variables berikut:
 
 ```
 APP_KEYS=<value dari .env lokal>
 API_TOKEN_SALT=<value dari .env lokal>
 ADMIN_JWT_SECRET=<value dari .env lokal>
 JWT_SECRET=<value dari .env lokal>
+TRANSFER_TOKEN_SALT=<value dari .env lokal>
+ENCRYPTION_KEY=<value dari .env lokal>
 DATABASE_CLIENT=postgres
-DATABASE_HOST=<host database>
+DATABASE_HOST=127.0.0.1
 DATABASE_PORT=5432
 DATABASE_NAME=<nama database>
 DATABASE_USERNAME=<username database>
 DATABASE_PASSWORD=<password database>
 ```
 
-> **Catatan:** `NODE_ENV` dan `HOST` sudah otomatis diset oleh cPanel. `PORT` tidak perlu diset — Passenger mengelolanya via Unix socket.
+> **Catatan:**
+> - `NODE_ENV` dan `HOST` sudah otomatis diset oleh cPanel
+> - `PORT` tidak perlu diset — Passenger mengelolanya via Unix socket
+> - Kalau belum punya `TRANSFER_TOKEN_SALT` atau `ENCRYPTION_KEY`, generate dengan: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`
 
 ---
 
@@ -97,7 +102,7 @@ Tambahkan secrets berikut:
 
 | Secret Name | Value |
 |---|---|
-| `SSH_PRIVATE_KEY` | Output dari `cat ~/.ssh/domainesia_deploy` di server (termasuk baris `-----BEGIN...` dan `-----END...`) |
+| `SSH_PRIVATE_KEY` | Output dari `cat ~/.ssh/domainesia_deploy` di server |
 | `SSH_HOST` | Hostname SSH server DomaiNesia (cek di cPanel → SSH Access) |
 | `SSH_USER` | Username SSH (sama dengan username cPanel) |
 | `DEPLOY_PATH` | `~/admin.inshanmedia.com` |
@@ -129,41 +134,60 @@ Push ke main
     ↓
 GitHub Actions: checkout kode
     ↓
-GitHub Actions: npm ci (install semua deps)
+GitHub Actions: bun install --frozen-lockfile (install semua deps)
     ↓
-GitHub Actions: npm run build (build admin panel)
+GitHub Actions: bun run build (build admin panel)
     ↓
-GitHub Actions: rsync → kirim file ke ~/admin.inshanmedia.com/
+GitHub Actions: rm node_modules && bun install --production (prune dev deps)
     ↓
-Server: npm install --omit=dev (install production deps)
+GitHub Actions: rsync app files → ~/admin.inshanmedia.com/ (tanpa node_modules)
+    ↓
+GitHub Actions: rsync node_modules → ~/nodevenv/.../lib/node_modules/
     ↓
 Server: touch tmp/restart.txt (restart Passenger)
     ↓
 Selesai ✓
 ```
 
-File yang **tidak** dikirim ke server:
-- `node_modules/` — diinstall ulang di server
-- `.env` — sudah diset via cPanel environment variables
+File yang **tidak** dikirim ke folder app:
+- `node_modules/` — di-deploy langsung ke path nodevenv CloudLinux
+- `.env` — diset via cPanel environment variables
+- `.htaccess` — dikelola cPanel/Passenger, tidak boleh tertimpa
+- `.strapi`, `.strapi-updater.json` — runtime files Strapi
+- `.well-known` — SSL/domain verification dari cPanel
 - `public/uploads/` — konten upload tidak tertimpa
-- `.git/`, `.github/` — tidak diperlukan di server
+- `passenger.log` — log file server
 
 ---
 
 ## Troubleshooting
 
-### Deployment gagal di step "Install production dependencies"
-Pastikan SSH key sudah terdaftar dengan benar di server dan secret `SSH_PRIVATE_KEY` sudah benar.
-
-### App tidak jalan setelah deploy
-Cek log di cPanel → **Errors** atau via SSH:
+### Error: `Cannot find module '@strapi/strapi'`
+`node_modules` belum terinstall di nodevenv. Pastikan step "Deploy node_modules to nodevenv" di CI berhasil. Cek path nodevenv:
 ```bash
-cat ~/admin.inshanmedia.com/tmp/restart.txt
-# Pastikan file ini ada
+ls /home/[username]/nodevenv/admin.inshanmedia.com/24/lib/node_modules/@strapi/
 ```
 
-### `strapi start` error: missing env variables
-Pastikan semua environment variables sudah diisi di cPanel Node.js App → Edit → Environment variables.
+### Error: `Middleware strapi::compression has already been registered`
+Terjadi jika `.register()` dipanggil manual sebelum `.start()` di `server.js`. Pastikan `server.js` hanya memanggil `app.start()` tanpa `.register()` eksplisit.
 
-### Port conflict
-Gunakan PORT yang diberikan oleh cPanel, bukan 1337.
+### Error: `Failed to fetch dynamically imported module`
+Browser menyimpan cache JS lama yang tidak cocok dengan build terbaru. Lakukan hard refresh:
+- Windows: `Ctrl + Shift + R`
+- Mac: `Cmd + Shift + R`
+
+### App tidak jalan setelah deploy
+Cek log Passenger via SSH:
+```bash
+tail -50 ~/admin.inshanmedia.com/passenger.log
+```
+Atau restart manual dari cPanel → Setup Node.js App → klik **Restart**.
+
+### Env variables hilang setelah edit di cPanel
+Jangan hapus semua env vars sekaligus di cPanel — edit satu per satu. Kalau sudah terlanjur kosong, isi ulang sesuai daftar di Langkah 3.
+
+### `npm list` menunjukkan UNMET DEPENDENCY
+Jalankan `npm list` dari direktori app, bukan dari direktori nodevenv:
+```bash
+cd ~/admin.inshanmedia.com && npm list
+```
