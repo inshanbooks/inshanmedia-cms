@@ -49,14 +49,8 @@ jobs:
         run: |
           rsync -avz --delete \
             -e "ssh -p 64000" \
-            --exclude='.git' \
-            --exclude='.github' \
             --exclude='node_modules' \
-            --exclude='.env' \
-            --exclude='.env.example' \
             --exclude='.htaccess' \
-            --exclude='.strapi' \
-            --exclude='.strapi-updater.json' \
             --exclude='.well-known' \
             --exclude='public/uploads' \
             --exclude='.tmp' \
