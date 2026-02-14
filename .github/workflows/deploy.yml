@@ -34,6 +34,9 @@ jobs:
           ADMIN_JWT_SECRET: ${{ secrets.ADMIN_JWT_SECRET }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
+      - name: Prune dev dependencies
+        run: rm -rf node_modules && bun install --production
+
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -42,7 +45,7 @@ jobs:
       - name: Add server to known_hosts
         run: ssh-keyscan -p 64000 -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy files via rsync
+      - name: Deploy app files via rsync
         run: |
           rsync -avz --delete \
             -e "ssh -p 64000" \
@@ -60,11 +63,15 @@ jobs:
             --exclude='passenger.log' \
             ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
-      - name: Install production dependencies & restart app
+      - name: Deploy node_modules to nodevenv
+        run: |
+          rsync -avz --delete \
+            -e "ssh -p 64000" \
+            ./node_modules/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/inshanme/nodevenv/admin.inshanmedia.com/24/lib/node_modules/
+
+      - name: Restart app
         run: |
           ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            cd /home/inshanme/admin.inshanmedia.com
-            ~/.bun/bin/bun install --production
-            mkdir -p tmp
-            touch tmp/restart.txt
+            mkdir -p /home/inshanme/admin.inshanmedia.com/tmp
+            touch /home/inshanme/admin.inshanmedia.com/tmp/restart.txt
           "
