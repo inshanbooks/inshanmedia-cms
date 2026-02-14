@@ -63,7 +63,8 @@ jobs:
       - name: Install production dependencies & restart app
         run: |
           ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            cd ${{ secrets.DEPLOY_PATH }}
+            source /home/inshanme/nodevenv/admin.inshanmedia.com/24/bin/activate
+            cd /home/inshanme/admin.inshanmedia.com
             npm install --omit=dev
             mkdir -p tmp
             touch tmp/restart.txt
