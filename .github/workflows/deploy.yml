@@ -48,7 +48,6 @@ jobs:
             -e "ssh -p 64000" \
             --exclude='.git' \
             --exclude='.github' \
-            --exclude='node_modules' \
             --exclude='.env' \
             --exclude='.env.example' \
             --exclude='.htaccess' \
@@ -60,12 +59,9 @@ jobs:
             --exclude='passenger.log' \
             ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/
 
-      - name: Install production dependencies & restart app
+      - name: Restart app
         run: |
           ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            source /home/inshanme/nodevenv/admin.inshanmedia.com/24/bin/activate
-            cd /home/inshanme/admin.inshanmedia.com
-            npm install --omit=dev
-            mkdir -p tmp
-            touch tmp/restart.txt
+            mkdir -p /home/inshanme/admin.inshanmedia.com/tmp
+            touch /home/inshanme/admin.inshanmedia.com/tmp/restart.txt
           "
