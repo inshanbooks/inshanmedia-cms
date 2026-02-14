@@ -9,7 +9,7 @@ const { createStrapi, compileStrapi } = require('@strapi/strapi');
 
 async function main() {
   const appContext = await compileStrapi();
-  const app = await createStrapi(appContext).register();
+  const app = createStrapi(appContext);
   await app.start();
 }
 
