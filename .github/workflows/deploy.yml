@@ -11,6 +11,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate required secrets
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          APP_KEYS: ${{ secrets.APP_KEYS }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$SSH_HOST" ]        && missing="$missing SSH_HOST"
+          [ -z "$SSH_USER" ]        && missing="$missing SSH_USER"
+          [ -z "$DEPLOY_PATH" ]     && missing="$missing DEPLOY_PATH"
+          [ -z "$SSH_PRIVATE_KEY" ] && missing="$missing SSH_PRIVATE_KEY"
+          [ -z "$APP_KEYS" ]        && missing="$missing APP_KEYS"
+          [ -z "$DATABASE_PASSWORD" ] && missing="$missing DATABASE_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "❌ Missing required secrets:$missing"
+            echo "Aborting to prevent deploying to wrong path."
+            exit 1
+          fi
+          echo "✅ All required secrets are set."
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -77,6 +100,11 @@ jobs:
       - name: Add server to known_hosts
         run: ssh-keyscan -p 64000 -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
+      - name: Verify deploy path exists on server
+        run: |
+          ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && echo '✅ Deploy path verified: ${{ secrets.DEPLOY_PATH }}'"
+
       - name: Deploy app files via rsync
         run: |
           rsync -avz --delete \
@@ -97,13 +125,12 @@ jobs:
 
       - name: Ensure uploads directory exists
         run: |
-          ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            mkdir -p ${{ secrets.DEPLOY_PATH }}/public/uploads
-          "
+          ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "mkdir -p ${{ secrets.DEPLOY_PATH }}/public/uploads"
 
       - name: Restart app
         run: |
           ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            mkdir -p /home/inshanme/admin.inshanmedia.com/tmp
-            touch /home/inshanme/admin.inshanmedia.com/tmp/restart.txt
+            mkdir -p ${{ secrets.DEPLOY_PATH }}/tmp
+            touch ${{ secrets.DEPLOY_PATH }}/tmp/restart.txt
           "
