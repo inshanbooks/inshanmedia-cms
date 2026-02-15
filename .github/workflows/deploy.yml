@@ -34,6 +34,38 @@ jobs:
           ADMIN_JWT_SECRET: ${{ secrets.ADMIN_JWT_SECRET }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
+      - name: Generate .env file
+        env:
+          APP_KEYS: ${{ secrets.APP_KEYS }}
+          API_TOKEN_SALT: ${{ secrets.API_TOKEN_SALT }}
+          ADMIN_JWT_SECRET: ${{ secrets.ADMIN_JWT_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          TRANSFER_TOKEN_SALT: ${{ secrets.TRANSFER_TOKEN_SALT }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          DATABASE_CLIENT: ${{ secrets.DATABASE_CLIENT }}
+          DATABASE_HOST: ${{ secrets.DATABASE_HOST }}
+          DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+          DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
+        run: |
+          echo "NODE_ENV=production" > .env
+          echo "HOST=0.0.0.0" >> .env
+          echo "APP_KEYS=${APP_KEYS}" >> .env
+          echo "API_TOKEN_SALT=${API_TOKEN_SALT}" >> .env
+          echo "ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET}" >> .env
+          echo "JWT_SECRET=${JWT_SECRET}" >> .env
+          echo "TRANSFER_TOKEN_SALT=${TRANSFER_TOKEN_SALT}" >> .env
+          echo "ENCRYPTION_KEY=${ENCRYPTION_KEY}" >> .env
+          echo "DATABASE_CLIENT=${DATABASE_CLIENT}" >> .env
+          echo "DATABASE_HOST=${DATABASE_HOST}" >> .env
+          echo "DATABASE_PORT=${DATABASE_PORT}" >> .env
+          echo "DATABASE_NAME=${DATABASE_NAME}" >> .env
+          echo "DATABASE_USERNAME=${DATABASE_USERNAME}" >> .env
+          echo "DATABASE_PASSWORD=${DATABASE_PASSWORD}" >> .env
+          echo "DATABASE_SSL=${DATABASE_SSL}" >> .env
+
       - name: Prune dev dependencies
         run: rm -rf node_modules && bun install --production
 
