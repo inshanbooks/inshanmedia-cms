@@ -95,6 +95,12 @@ jobs:
             -e "ssh -p 64000" \
             ./node_modules/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/inshanme/nodevenv/admin.inshanmedia.com/24/lib/node_modules/
 
+      - name: Ensure uploads directory exists
+        run: |
+          ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            mkdir -p ${{ secrets.DEPLOY_PATH }}/public/uploads
+          "
+
       - name: Restart app
         run: |
           ssh -p 64000 ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
