@@ -22,5 +22,9 @@ export default [
   'strapi::body',
   'strapi::session',
   'strapi::favicon',
+  {
+    name: 'global::cache',
+    config: {},
+  },
   'strapi::public',
 ];
