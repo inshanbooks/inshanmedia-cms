@@ -1,4 +1,5 @@
 import type { Core } from '@strapi/strapi';
+import { invalidateApiCache } from './lib/redis';
 
 export default {
   /**
@@ -22,8 +23,7 @@ export default {
 
     if (categoryCount > 0) {
       console.log('📦 Seed data already exists, skipping...');
-      return;
-    }
+    } else {
 
     console.log('🌱 Seeding initial data...');
 
@@ -367,5 +367,22 @@ export default {
     } catch (error) {
       console.error('❌ Seed error:', error);
     }
+    }
+
+    // Cache invalidation lifecycle hooks
+    strapi.db.lifecycles.subscribe({
+      models: [
+        'api::article.article',
+        'api::product.product',
+        'api::category.category',
+        'api::author.author',
+      ],
+      async afterCreate() { await invalidateApiCache(); },
+      async afterCreateMany() { await invalidateApiCache(); },
+      async afterUpdate() { await invalidateApiCache(); },
+      async afterUpdateMany() { await invalidateApiCache(); },
+      async afterDelete() { await invalidateApiCache(); },
+      async afterDeleteMany() { await invalidateApiCache(); },
+    });
   },
 };

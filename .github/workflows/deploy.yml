@@ -72,6 +72,7 @@ jobs:
           DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
+          REDIS_SOCKET_PATH: ${{ secrets.REDIS_SOCKET_PATH }}
         run: |
           echo "NODE_ENV=production" > .env
           echo "HOST=0.0.0.0" >> .env
@@ -88,6 +89,7 @@ jobs:
           echo "DATABASE_USERNAME=${DATABASE_USERNAME}" >> .env
           echo "DATABASE_PASSWORD=${DATABASE_PASSWORD}" >> .env
           echo "DATABASE_SSL=${DATABASE_SSL}" >> .env
+          echo "REDIS_SOCKET_PATH=${REDIS_SOCKET_PATH}" >> .env
 
       - name: Prune dev dependencies
         run: rm -rf node_modules && bun install --production
