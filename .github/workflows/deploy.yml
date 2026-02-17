@@ -19,6 +19,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           APP_KEYS: ${{ secrets.APP_KEYS }}
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
         run: |
           missing=""
           [ -z "$SSH_HOST" ]        && missing="$missing SSH_HOST"
@@ -27,6 +28,7 @@ jobs:
           [ -z "$SSH_PRIVATE_KEY" ] && missing="$missing SSH_PRIVATE_KEY"
           [ -z "$APP_KEYS" ]        && missing="$missing APP_KEYS"
           [ -z "$DATABASE_PASSWORD" ] && missing="$missing DATABASE_PASSWORD"
+          [ -z "$CLOUDINARY_URL" ]  && missing="$missing CLOUDINARY_URL"
           if [ -n "$missing" ]; then
             echo "❌ Missing required secrets:$missing"
             echo "Aborting to prevent deploying to wrong path."
@@ -73,6 +75,7 @@ jobs:
           DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
           DATABASE_SSL: ${{ secrets.DATABASE_SSL }}
           REDIS_SOCKET_PATH: ${{ secrets.REDIS_SOCKET_PATH }}
+          CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
         run: |
           echo "NODE_ENV=production" > .env
           echo "HOST=0.0.0.0" >> .env
@@ -90,6 +93,7 @@ jobs:
           echo "DATABASE_PASSWORD=${DATABASE_PASSWORD}" >> .env
           echo "DATABASE_SSL=${DATABASE_SSL}" >> .env
           echo "REDIS_SOCKET_PATH=${REDIS_SOCKET_PATH}" >> .env
+          echo "CLOUDINARY_URL=${CLOUDINARY_URL}" >> .env
 
       - name: Prune dev dependencies
         run: rm -rf node_modules && bun install --production
